@@ -1,0 +1,30 @@
+# Estágio 1: Build
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+# Instala dependências
+COPY package*.json ./
+RUN npm ci
+
+# Copia o restante do código
+COPY . .
+
+# Caso utilize variáveis de ambiente da API no Vite, defina aqui:
+# ARG VITE_API_URL
+# ENV VITE_API_URL=$VITE_API_URL
+
+# Executa o build do Vite (gera a pasta /dist)
+RUN npm run build
+
+# Estágio 2: Serve os arquivos estáticos com Nginx
+FROM nginx:alpine
+
+# Copia a pasta dist do Vite para o diretório padrão do Nginx
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copia as configurações do Nginx para evitar erro 404 no React Router
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
